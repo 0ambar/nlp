@@ -115,7 +115,7 @@ def write_info(bib_map):
 
 
 try:
-    with open( 'pr1/Pruebas1/conference1.bib', 'r' ) as file:
+    with open( 'pr1/Pruebas1/conference2.bib', 'r' ) as file:
         text = file.read().strip()
     
     bib_map = read_info(text)
@@ -123,7 +123,7 @@ try:
 
 
 except FileNotFoundError:
-    print('\nEl archivo no fue encontrado')
+    print('\nEl archivo .bib no fue encontrado')
     
 except Exception as e:
     print(f'\nError: {e}')
