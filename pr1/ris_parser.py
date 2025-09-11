@@ -35,7 +35,7 @@ ENTRY_TYPE = {
 }
 
 ENTRY_SPLITTER = (
-    r'(\s*@\w*\s*)'                 # Tipo de entrada (grupo 1)
+    r'\s*@(\w*\s*)'                 # Tipo de entrada (grupo 1)
     r'\{'                           # Llave de apertura
     r'([\w\-\.\/]+)'                # Identificador (grupo 2)
     r','                            # Coma
@@ -47,14 +47,11 @@ CONTENT_PATTERN = r'\{(.*)\}'       # Values pattern
 TAG_PATTERN = r'\w*[^=]'            # Key pattern
 
 
-
-try:
-    with open( 'pr1/Pruebas1/conference2.bib', 'r' ) as archivo:
-        text = archivo.read().strip()
-    
+def read_info(text):
     body = re.search( ENTRY_SPLITTER, text, re.DOTALL )
 
     entry_type = ''
+    identifier = ''
     body_fields = ''
     if body:
         entry_type = body.group(1).lower()
@@ -65,18 +62,66 @@ try:
     fields_content = re.split( FIELDS_SPLITTER, body_fields )
     
     bib_map = {}
+    bib_map['type'] = entry_type
+    bib_map['id'] = identifier
     i = 0
     while i < len(tags_with_equals):
         content = re.search(CONTENT_PATTERN, fields_content[i + 1], re.DOTALL).group(1)
         clean_tag = re.search(TAG_PATTERN, tags_with_equals[i]).group()
-        bib_map[clean_tag] = content
+        clean_content = re.split(r'\nand\s+', content) if clean_tag in MULTI_VALUES else content
+        bib_map[clean_tag] = clean_content
         i += 1
 
-    for key, value in bib_map.items():
-        print(f'\n{key}: {re.split(r'and\s+', value) if key in MULTI_VALUES else value}')
+
+    return bib_map
         
 
+def write_info(bib_map):
+    try:
+        with open( 'pr1/Salidas/salida.ris', 'w') as file:
+            date = '///'
+            for k, v in bib_map.items():
+                match k:
+                    case 'type':
+                        file.write(f'TY  - {ENTRY_TYPE[v]}\n')
+                    case 'id':
+                        file.write(f'ID  - {v}\n')
+                    case 'author' | 'editor':
+                        for author in v:
+                            file.write(f'{FIELD_TYPE[k]}  - {author}\n')
+                    case 'pages':
+                        pages = v.split('--')
+                        sp = pages[0]
+                        ep = pages[-1]
+                        file.write(f'SP  - {sp}\nEP  - {ep}\n')
+                    case 'year':
+                        date = f'{v}/'
+                        file.write(f'{FIELD_TYPE[k]}  - {v}\n')
+                    case 'month':
+                        date += f'{v}/'
+                    case 'day':
+                        date += f'{v}'
+                        file.write(f'DA  - {date}\n')
+                    case _:
+                        file.write(f'{FIELD_TYPE[k]}  - {v}\n')
+            
+            file.write('ER  -\n')
+            
+    except FileNotFoundError:
+        print('\nEl archivo no fue encontrado')
+        
+    except Exception as e:
+        print(f'\nError: {e}')
+
+
+try:
+    with open( 'pr1/Pruebas1/conference1.bib', 'r' ) as file:
+        text = file.read().strip()
     
+    bib_map = read_info(text)
+    write_info(bib_map)
+
+
 except FileNotFoundError:
     print('\nEl archivo no fue encontrado')
     
